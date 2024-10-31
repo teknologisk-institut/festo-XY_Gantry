@@ -1,6 +1,7 @@
 from edcon.edrive.com_modbus import ComModbus
 from edcon.edrive.motion_handler import MotionHandler
 from edcon.utils.logging import Logging
+import control.database as db
 import time
 import numpy as np
 
@@ -39,12 +40,12 @@ class Gantry():
         self.currentRel = [mot.current_position()-c for [mot,c] in zip(self.mots,self.center)]
         return self.currentRel
         
-    def moveRelative(self, position, velocity=[300,300]): # moves the gantry to the specified relative position with the specified velocity
-        for [mot,pos,vel,absPos] in zip(self.mots,position,velocity,self.positionAbs()):
+    def moveRelative(self, position, velocity=[30,30]): # moves the gantry to the specified relative position with the specified velocity
+        for [mot,pos,vel,absPos] in zip(self.mots,position,velocity,self.currentAbs):
             if absPos + pos < 0:
-                pos = absPos
-            elif absPos + pos > 500:
-                pos = 500-absPos
+                pos = -absPos
+            elif absPos + pos > 495000:
+                pos = 495000-absPos
             mot.position_task(pos, vel, nonblocking=True, absolute=False)
         while True:
             currentPosition = [mot.current_position() for mot in self.mots]
@@ -56,14 +57,14 @@ class Gantry():
         self.positionAbs()
         self.positionRel()
             
-    def moveAbsolute(self, position, velocity=[300,300]): # moves the gantry to the specified absolute position with the specified velocity
+    def moveAbsolute(self, position, velocity=[30,30]): # moves the gantry to the specified absolute position with the specified velocity
         for [mot,pos,vel,c] in zip(self.mots,position,velocity,self.center): #,self.positionAbs(),self.zero
             
             pos = pos+c
             if pos < 0:
                 pos = 0
-            elif pos > 495:
-                pos = 495
+            elif pos > 495000:
+                pos = 495000
             print("from 'moveAbsolute': Moving to position: " + str(pos - c))
             mot.position_task(pos, vel, nonblocking=True, absolute=True)
         while True:
@@ -93,11 +94,20 @@ class Gantry():
 
     def home(self):
         for [mot,c] in zip(self.mots,self.center):
-            mot.position_task(c, 300, nonblocking=True, absolute=True)
+            mot.position_task(c, 30, nonblocking=True, absolute=True)
+        while True:
+            currentPosition = [mot.current_position() for mot in self.mots]
+            print(currentPosition)
+            target_positions_reached = [mot.target_position_reached() for mot in self.mots]
+            if all(target_positions_reached):
+                break
+            time.sleep(0.1)
+        self.positionAbs()
+        self.positionRel()
 
     def toCorner(self):
         for mot in self.mots:
-            mot.position_task(0, 300, nonblocking=True, absolute=True)
+            mot.position_task(0, 30, nonblocking=True, absolute=True)
         while True:
             currentPosition = [mot.current_position() for mot in self.mots]
             print(currentPosition)
@@ -110,6 +120,8 @@ class Gantry():
         
 
     def pattern(self, width, length, numStepsWidth, numStepsLength, restTime):
+        rainDB = db.rainDB()
+        rainDB.connect()
         widthPos = np.linspace(-width/2, width/2, numStepsWidth)
         print(widthPos)
         
@@ -117,12 +129,15 @@ class Gantry():
         print(lengthPos)
         for w in widthPos:
             for l in lengthPos:
+                timeStart = time.time()
                 self.moveAbsolute([int(round(w)),int(round(l))])
                 print("width position = ", w)
                 print("length position = ", l)
                 print(self.positionAbs())
                 print(self.positionRel())
                 time.sleep(restTime)
+                timeEnd = time.time()
+                rainDB.insert(timeStart, timeEnd, self.positionAbs()[0], self.positionAbs()[1], self.positionRel()[0], self.positionRel()[1])
 
     # def connect(self, address):
     #     self.coms = [ComModbus(ip_address=add) for add in address]
