@@ -1,7 +1,7 @@
 from edcon.edrive.com_modbus import ComModbus
 from edcon.edrive.motion_handler import MotionHandler
 from edcon.utils.logging import Logging
-import control.database as db
+import databaseFesto as db
 import time
 import numpy as np
 
