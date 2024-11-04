@@ -19,6 +19,20 @@ class Gantry():
     def connect(self, addresses): # connects to the gantry and references the motors
         self.coms = [ComModbus(ip_address=add) for add in addresses]
         self.mots = [MotionHandler(com) for com in self.coms]
+        # for mot in self.mots:
+        #     mot.acknowledge_faults()
+        #     mot.enable_powerstage()
+        #     if not mot.referenced():
+        #         mot.referencing_task()
+        # while True:
+        #     target_positions_reached = [mot.target_position_reached() for mot in self.mots]
+        #     if all(target_positions_reached):
+        #         break
+        #     time.sleep(0.1)
+        # self.positionAbs()    
+        # self.positionRel()    
+
+    def powerOn(self): # enables the powerstage of the motors
         for mot in self.mots:
             mot.acknowledge_faults()
             mot.enable_powerstage()
@@ -32,6 +46,11 @@ class Gantry():
         self.positionAbs()    
         self.positionRel()    
 
+
+    def powerOff(self): # disables the powerstage of the motors
+        for mot in self.mots:
+            mot.disable_powerstage()
+
     def positionAbs(self): # returns the absolute position of the gantry
         self.currentAbs = [mot.current_position() for mot in self.mots]
         return self.currentAbs
@@ -40,7 +59,7 @@ class Gantry():
         self.currentRel = [mot.current_position()-c for [mot,c] in zip(self.mots,self.center)]
         return self.currentRel
         
-    def moveRelative(self, position, velocity=[30,30]): # moves the gantry to the specified relative position with the specified velocity
+    def moveRelative(self, position, velocity=[30,30], toTerminal = False): # moves the gantry to the specified relative position with the specified velocity
         for [mot,pos,vel,absPos] in zip(self.mots,position,velocity,self.currentAbs):
             if absPos + pos < 0:
                 pos = -absPos
@@ -48,8 +67,9 @@ class Gantry():
                 pos = 495000-absPos
             mot.position_task(pos, vel, nonblocking=True, absolute=False)
         while True:
-            currentPosition = [mot.current_position() for mot in self.mots]
-            print(currentPosition)
+            if toTerminal == True:
+                currentPosition = [mot.current_position() for mot in self.mots]
+                print(currentPosition)
             target_positions_reached = [mot.target_position_reached() for mot in self.mots]
             if all(target_positions_reached):
                 break
@@ -57,7 +77,7 @@ class Gantry():
         self.positionAbs()
         self.positionRel()
             
-    def moveAbsolute(self, position, velocity=[30,30]): # moves the gantry to the specified absolute position with the specified velocity
+    def moveAbsolute(self, position, velocity=[30,30], toTerminal = False): # moves the gantry to the specified absolute position with the specified velocity
         for [mot,pos,vel,c] in zip(self.mots,position,velocity,self.center): #,self.positionAbs(),self.zero
             
             pos = pos+c
@@ -65,11 +85,13 @@ class Gantry():
                 pos = 0
             elif pos > 495000:
                 pos = 495000
-            print("from 'moveAbsolute': Moving to position: " + str(pos - c))
+            if toTerminal == True:
+                print("from 'moveAbsolute': Moving to position: " + str(pos - c))
             mot.position_task(pos, vel, nonblocking=True, absolute=True)
         while True:
-            currentPosition = [mot.current_position() for mot in self.mots]
-            # print(currentPosition)
+            if toTerminal == True:
+                currentPosition = [mot.current_position() for mot in self.mots]
+                print(currentPosition)
             target_positions_reached = [mot.target_position_reached() for mot in self.mots]
             if all(target_positions_reached):
                 break
