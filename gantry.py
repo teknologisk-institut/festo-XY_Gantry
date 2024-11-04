@@ -119,25 +119,25 @@ class Gantry():
         self.positionRel()
         
 
-    def pattern(self, width, length, numStepsWidth, numStepsLength, restTime):
-        rainDB = db.rainDB()
-        rainDB.connect()
+    def pattern(self, width, length, numStepsWidth, numStepsLength, restTime, toTerminal = False):
+        gantryDB = db.gantryDB()
+        gantryDB.connect()
         widthPos = np.linspace(-width/2, width/2, numStepsWidth)
-        print(widthPos)
-        
+        # print(widthPos)
         lengthPos = np.linspace(-length/2, length/2, numStepsLength)
-        print(lengthPos)
+        # print(lengthPos)
         for w in widthPos:
             for l in lengthPos:
                 timeStart = time.time()
                 self.moveAbsolute([int(round(w)),int(round(l))])
-                print("width position = ", w)
-                print("length position = ", l)
-                print(self.positionAbs())
-                print(self.positionRel())
+                if toTerminal == True:
+                    print("width position = ", w)
+                    print("length position = ", l)
+                    print(self.positionAbs())
+                    print(self.positionRel())
                 time.sleep(restTime)
                 timeEnd = time.time()
-                rainDB.insert(timeStart, timeEnd, self.positionAbs()[0], self.positionAbs()[1], self.positionRel()[0], self.positionRel()[1])
+                gantryDB.insert(timeStart, timeEnd, self.positionAbs()[0], self.positionAbs()[1], self.positionRel()[0], self.positionRel()[1])
 
     # def connect(self, address):
     #     self.coms = [ComModbus(ip_address=add) for add in address]

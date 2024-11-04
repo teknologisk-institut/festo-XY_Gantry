@@ -2,7 +2,7 @@ import sqlite3 as sql
 import time
 
 
-class rainDB:
+class gantryDB:
     def connect(self):
         self.con = sql.connect('gantry.db')
         self.cur = self.con.cursor()
