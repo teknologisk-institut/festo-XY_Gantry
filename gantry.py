@@ -143,7 +143,7 @@ class Gantry():
 
     def pattern(self, width, length, numStepsWidth, numStepsLength, restTime, toTerminal = False):
         gantryDB = db.gantryDB()
-        gantryDB.connect()
+        # gantryDB.connect()
         widthPos = np.linspace(-width/2, width/2, numStepsWidth)
         # print(widthPos)
         lengthPos = np.linspace(-length/2, length/2, numStepsLength)
@@ -159,8 +159,9 @@ class Gantry():
                     print(self.positionRel())
                 time.sleep(restTime)
                 timeEnd = time.time()
+                gantryDB.connect()
                 gantryDB.insert(timeStart, timeEnd, self.positionAbs()[0], self.positionAbs()[1], self.positionRel()[0], self.positionRel()[1])
-
+                gantryDB.close()
     # def connect(self, address):
     #     self.coms = [ComModbus(ip_address=add) for add in address]
     #     self.mots = [MotionHandler(com) for com in self.coms]
